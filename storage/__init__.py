@@ -1,0 +1,2 @@
+"""Publication history storage."""
+

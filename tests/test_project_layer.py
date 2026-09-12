@@ -6,7 +6,11 @@ from processing.filters import add_scores, filter_by_minimum_score, filter_relev
 from project.filters import is_relevant
 from project.formatter import format_photo_caption, format_post
 from project.scoring import calculate_score
-from project.sources import extract_autostat_article
+from project.sources import (
+    extract_autostat_article,
+    extract_avtonovostidnya_article,
+    extract_five_wheels_article,
+)
 
 
 def item(title, description=""):
@@ -147,4 +151,32 @@ def test_autostat_extractor_keeps_only_article_paragraphs():
 
     assert extract_autostat_article(soup) == (
         "Первый абзац новости.\n\nВторой абзац новости."
+    )
+
+
+def test_new_source_extractors_keep_only_editorial_paragraphs():
+    soup = BeautifulSoup(
+        """
+        <header><p>Навигация сайта</p></header>
+        <div class="article__main">
+          <p>Первый абзац Автоновостей дня.</p>
+          <p>Второй абзац Автоновостей дня.</p>
+        </div>
+        <div class="news-page">
+          <span class="author">Автор материала</span>
+          <p>Первый абзац журнала 5 колесо.</p>
+          <p>Второй абзац журнала 5 колесо.</p>
+        </div>
+        <footer><p>Контакты редакции</p></footer>
+        """,
+        "html.parser",
+    )
+
+    assert extract_avtonovostidnya_article(soup) == (
+        "Первый абзац Автоновостей дня.\n\n"
+        "Второй абзац Автоновостей дня."
+    )
+    assert extract_five_wheels_article(soup) == (
+        "Первый абзац журнала 5 колесо.\n\n"
+        "Второй абзац журнала 5 колесо."
     )

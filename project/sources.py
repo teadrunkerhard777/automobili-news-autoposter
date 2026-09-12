@@ -19,6 +19,32 @@ def extract_autostat_article(soup):
     ]
     return "\n\n".join(paragraph for paragraph in paragraphs if paragraph)
 
+
+def extract_article_paragraphs(soup, selector):
+    """Extract normalized editorial paragraphs from one stable body selector."""
+
+    body = soup.select_one(selector)
+    if body is None:
+        return ""
+
+    paragraphs = [
+        " ".join(node.get_text(" ", strip=True).split())
+        for node in body.select("p")
+    ]
+    return "\n\n".join(paragraph for paragraph in paragraphs if paragraph)
+
+
+def extract_avtonovostidnya_article(soup):
+    """Extract the article body without navigation and related stories."""
+
+    return extract_article_paragraphs(soup, "div.article__main")
+
+
+def extract_five_wheels_article(soup):
+    """Extract the article body without the author and page furniture."""
+
+    return extract_article_paragraphs(soup, "div.news-page")
+
 SOURCES = [
     {
         "name": "Auto Moto local fixture", "type": "static", "enabled": False,
@@ -73,13 +99,33 @@ SOURCES = [
         "url": "https://autosport.com.ru/rss/news.xml", "enabled": True,
         "limit": 20, "source_kind": "motorsport_media", "language": "ru",
     },
+    {
+        "name": "Автоновости дня", "type": "rss",
+        "url": "https://avtonovostidnya.ru/feed", "enabled": True,
+        "limit": 30, "source_kind": "automotive_media", "language": "ru",
+    },
+    {
+        "name": "5 колесо", "type": "rss",
+        "url": "https://5koleso.ru/feed/", "enabled": True,
+        "limit": 30, "source_kind": "automotive_media", "language": "ru",
+    },
+    {
+        "name": "Авто Mail", "type": "rss",
+        "url": "https://auto.mail.ru/rss/", "enabled": True,
+        "limit": 30, "source_kind": "automotive_media", "language": "ru",
+    },
 ]
 
 SOURCE_EXTRACTORS = {
     "АВТОСТАТ": extract_autostat_article,
+    "Автоновости дня": extract_avtonovostidnya_article,
+    "5 колесо": extract_five_wheels_article,
 }
 SOURCE_STOP_MARKERS = {
     "Drom.ru Новости": ("Читайте также:",),
     "АВТОСТАТ": ("Фото:", "Теги:", "также подписывайтесь"),
     "Autosport.com.ru": ("Читайте также:",),
+    "Автоновости дня": ("Читайте также:", "Источник:"),
+    "5 колесо": ("Читайте также:",),
+    "Авто Mail": ("Читайте также:",),
 }

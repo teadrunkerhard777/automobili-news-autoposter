@@ -111,9 +111,24 @@ def test_formatter_escapes_html_and_uses_editorial_tags():
 
     assert "Toyota &lt;показала&gt;" in post
     assert "Быстрее &amp; экономичнее" in post
-    assert "#АвтомобилиНовости #Новинки" in post
-    assert "Тест &amp; источник" in post
+    assert "#АвтомобилиНовости" not in post
+    assert "📅 2 января 2026" in post
+    assert "📰 <a href=" in post
+    assert "Тест &amp; источник</a>: новинки" in post
+    assert "🔗 <a href=" in post
+    assert post.endswith("#Новинки")
     assert 'href="https://example.test/item?a=1&amp;b=2"' in post
+
+
+def test_formatter_omits_date_line_when_publication_date_is_unknown():
+    news = item("Toyota представила новый кроссовер")
+    news["published_at"] = None
+    is_relevant(news)
+
+    post = format_post(news)
+
+    assert "📅" not in post
+    assert "📰 <a href=" in post
 
 
 def test_formatter_removes_service_paragraphs_and_prefers_article_text():

@@ -70,3 +70,37 @@ def test_optional_location_can_support_event_match():
 
     assert compare_event_fingerprints(first, second, EVENT_DEDUP_SETTINGS)["is_duplicate"] is True
 
+
+def test_large_shared_fact_cluster_matches_unequal_article_lengths():
+    shared = " ".join(f"shared{i}" for i in range(20))
+    short_unique = " ".join(f"short{i}" for i in range(35))
+    long_unique = " ".join(f"long{i}" for i in range(90))
+    first = make_item("a", "Tenet Plus L4 starts sales", f"{shared} {short_unique}")
+    second = make_item(
+        "b",
+        "Prices announced for a city crossover",
+        f"{shared} {long_unique}",
+        hours=2,
+    )
+
+    details = compare_event_fingerprints(first, second, EVENT_DEDUP_SETTINGS)
+
+    assert details["token_overlap"] < EVENT_DEDUP_SETTINGS["min_token_overlap"]
+    assert details["is_duplicate"] is True
+
+
+def test_project_source_priority_selects_preferred_duplicate():
+    facts = "tenet plus sales crossover prices engine gearbox equipment"
+    autostat = make_item("АВТОСТАТ", "Tenet Plus начал продажи", facts)
+    five_wheels = make_item(
+        "5 колесо",
+        "Объявлены цены Tenet Plus",
+        facts,
+        hours=1,
+    )
+    five_wheels["score"] = autostat["score"] + 10
+
+    assert remove_duplicates(
+        [five_wheels, autostat],
+        EVENT_DEDUP_SETTINGS,
+    ) == [autostat]

@@ -20,7 +20,7 @@ def extract_autostat_article(soup):
     return "\n\n".join(paragraph for paragraph in paragraphs if paragraph)
 
 
-def extract_article_paragraphs(soup, selector):
+def extract_article_paragraphs(soup, selector, paragraph_selector="p"):
     """Extract normalized editorial paragraphs from one stable body selector."""
 
     body = soup.select_one(selector)
@@ -29,7 +29,7 @@ def extract_article_paragraphs(soup, selector):
 
     paragraphs = [
         " ".join(node.get_text(" ", strip=True).split())
-        for node in body.select("p")
+        for node in body.select(paragraph_selector)
     ]
     return "\n\n".join(paragraph for paragraph in paragraphs if paragraph)
 
@@ -43,7 +43,11 @@ def extract_avtonovostidnya_article(soup):
 def extract_five_wheels_article(soup):
     """Extract the article body without the author and page furniture."""
 
-    return extract_article_paragraphs(soup, "div.news-page")
+    return extract_article_paragraphs(
+        soup,
+        "div.news-page",
+        "p:not(.item-avto)",
+    )
 
 SOURCES = [
     {

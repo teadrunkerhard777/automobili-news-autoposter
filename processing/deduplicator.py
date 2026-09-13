@@ -10,6 +10,9 @@ DEFAULTS = {
     "min_token_overlap": 0.45,
     "min_token_jaccard": 0.20,
     "dense_match_tokens": 7,
+    "broad_match_tokens": None,
+    "broad_min_token_jaccard": 0.10,
+    "source_priorities": {},
     "stop_words": set(),
     "noise_prefixes": (),
 }
@@ -77,7 +80,7 @@ def remove_duplicates(news_items, settings=None, debug=False):
             continue
 
         existing = unique[duplicate_index]
-        preferred = _choose_preferred(existing, item)
+        preferred = _choose_preferred(existing, item, _settings(settings))
 
         if debug:
             print(
@@ -168,10 +171,18 @@ def compare_event_fingerprints(first, second, settings=None):
         len(shared_tokens) >= values["dense_match_tokens"]
         and token_jaccard >= values["min_token_jaccard"]
     )
+    broad_match_tokens = values.get("broad_match_tokens")
+    broad_fact_match = (
+        broad_match_tokens is not None
+        and len(shared_tokens) >= broad_match_tokens
+        and token_jaccard >= values["broad_min_token_jaccard"]
+    )
 
     return {
         **result,
-        "is_duplicate": enough_facts and location_or_dense,
+        "is_duplicate": (
+            enough_facts and location_or_dense
+        ) or broad_fact_match,
         "shared_tokens": sorted(shared_tokens),
         "shared_categories": sorted(shared_categories),
         "shared_locations": sorted(shared_locations),
@@ -224,7 +235,14 @@ def _parse_datetime(value):
     return value.astimezone(timezone.utc)
 
 
-def _choose_preferred(first, second):
+def _choose_preferred(first, second, settings):
+    source_priorities = settings.get("source_priorities", {})
+    first_priority = source_priorities.get(first.get("source"), 0)
+    second_priority = source_priorities.get(second.get("source"), 0)
+
+    if first_priority != second_priority:
+        return first if first_priority > second_priority else second
+
     if first.get("score", 0) != second.get("score", 0):
         return first if first.get("score", 0) > second.get("score", 0) else second
 

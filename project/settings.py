@@ -14,7 +14,9 @@ RUSSIAN_STOP_WORDS = {
 EVENT_DEDUP_SETTINGS = {
     "text_limit": 1600, "time_window_hours": 48, "min_shared_tokens": 5,
     "min_token_overlap": 0.45, "min_token_jaccard": 0.20,
-    "dense_match_tokens": 7,
+    "dense_match_tokens": 7, "broad_match_tokens": 20,
+    "broad_min_token_jaccard": 0.10,
+    "source_priorities": {"АВТОСТАТ": 1, "5 колесо": -1},
     "stop_words": {"about", "after", "also", "from", "into", "more", "that", "their", "this", "with", "will", "your", *RUSSIAN_STOP_WORDS},
     "noise_prefixes": ("announce", "article", "company", "report", "source", "update", "анонс", "источник", "материал", "сообщ"),
 }

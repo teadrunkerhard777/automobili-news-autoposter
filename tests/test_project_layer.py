@@ -178,7 +178,7 @@ def test_new_source_extractors_keep_only_editorial_paragraphs():
           <p>Второй абзац Автоновостей дня.</p>
         </div>
         <div class="news-page">
-          <span class="author">Автор материала</span>
+          <p class="item-avto">Автор материала</p>
           <p>Первый абзац журнала 5 колесо.</p>
           <p>Второй абзац журнала 5 колесо.</p>
         </div>
@@ -195,3 +195,4 @@ def test_new_source_extractors_keep_only_editorial_paragraphs():
         "Первый абзац журнала 5 колесо.\n\n"
         "Второй абзац журнала 5 колесо."
     )
+    assert "Автор материала" not in extract_five_wheels_article(soup)

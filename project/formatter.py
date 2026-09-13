@@ -21,10 +21,30 @@ CATEGORY_PRESENTATION = {
     "motorcycles": ("🏍", "мото", "#Мото"),
     "motorsport": ("🏁", "автоспорт", "#Автоспорт"),
     "new_models": ("🚘", "новинки", "#Новинки"),
-    "market": ("📊", "авторынок", "#Авторынок"),
+    "market": ("🚗", "авторынок", "#Авторынок"),
     "industry": ("🏭", "автопром", "#Автопром"),
     "technology": ("⚙️", "технологии", "#Технологии"),
     "ownership": ("🔧", "автосоветы", "#Автосоветы"),
+}
+
+HEADLINE_EMOJI_RULES = (
+    (("мотоцикл", "байк", "скутер"), ("🏍️", "💨", "🛣️")),
+    (("цен", "стоим", "рубл", "скидк"), ("💰", "🏷️", "💸")),
+    (("продаж", "рынок", "спрос"), ("📈", "🚗", "🤝", "🛒")),
+    (("представ", "показал", "показала", "премьера", "дебют"), ("🚘", "✨", "🆕")),
+    (("завод", "производ", "сборк", "конвейер"), ("🏭", "🔩", "🛠️")),
+    (("электромоб", "гибрид", "батаре", "двигател", "мотор"), ("⚡", "🔋", "⚙️")),
+)
+
+CATEGORY_EMOJI_PALETTES = {
+    "safety_recalls": ("⚠️", "🛡️", "🚨"),
+    "motorcycles": ("🏍️", "💨", "🛣️"),
+    "motorsport": ("🏁", "🏎️", "🏆"),
+    "new_models": ("🚘", "✨", "🆕"),
+    "market": ("🚗", "📈", "🔑", "🏷️"),
+    "industry": ("🏭", "🔩", "🛠️"),
+    "technology": ("⚙️", "⚡", "🔋"),
+    "ownership": ("🔧", "🛞", "🧰"),
 }
 
 TECHNICAL_PREFIXES = (
@@ -42,10 +62,11 @@ def format_photo_caption(news_item):
 
 
 def _format(news_item, limit, complete_paragraphs):
-    emoji, category_label, category_tag = CATEGORY_PRESENTATION.get(
+    fallback_emoji, category_label, category_tag = CATEGORY_PRESENTATION.get(
         news_item.get("event_category"),
         ("🚗", "авто", "#Авто"),
     )
+    emoji = _select_title_emoji(news_item, fallback_emoji)
     source = escape(" ".join(str(news_item.get("source") or "Источник").split()))
     url = escape(str(news_item.get("url") or ""), quote=True)
     source_line = (
@@ -73,6 +94,22 @@ def _format(news_item, limit, complete_paragraphs):
     if summary:
         return f"{header}\n\n{escape(summary)}\n\n{footer}"
     return f"{header}\n\n{footer}"
+
+
+def _select_title_emoji(news_item, fallback):
+    """Choose a stable, meaningful emoji without repeating one per category."""
+
+    title = " ".join(str(news_item.get("title") or "").split()).casefold()
+    for keywords, palette in HEADLINE_EMOJI_RULES:
+        if any(keyword in title for keyword in keywords):
+            return _stable_palette_choice(title, palette)
+
+    palette = CATEGORY_EMOJI_PALETTES.get(news_item.get("event_category"))
+    return _stable_palette_choice(title, palette) if palette else fallback
+
+
+def _stable_palette_choice(text, palette):
+    return palette[sum(ord(character) for character in text) % len(palette)]
 
 
 def _format_publication_date(value):

@@ -131,6 +131,36 @@ def test_formatter_omits_date_line_when_publication_date_is_unknown():
     assert "📰 <a href=" in post
 
 
+def test_market_headlines_use_stable_varied_emoji_instead_of_chart():
+    titles = (
+        "В России начались продажи нового кроссовера",
+        "Производитель раскрыл цены на новый седан",
+        "Автозавод запустил сборку внедорожника",
+        "Гибридный автомобиль получил новый двигатель",
+    )
+    emojis = []
+
+    for title in titles:
+        news = item(title)
+        news["event_category"] = "market"
+        first = format_post(news)
+        second = format_post(news)
+        emojis.append(first.split(" ", 1)[0])
+        assert first == second
+
+    assert "📊" not in emojis
+    assert len(set(emojis)) >= 3
+
+
+def test_motorcycle_signal_takes_priority_over_generic_premiere_signal():
+    news = item("Компания представила новый мотоцикл")
+    news["event_category"] = "motorcycles"
+
+    emoji = format_post(news).split(" ", 1)[0]
+
+    assert emoji in {"🏍️", "💨", "🛣️"}
+
+
 def test_formatter_removes_service_paragraphs_and_prefers_article_text():
     news = item("Honda представила новый мотоцикл", "Короткое описание")
     news.update({

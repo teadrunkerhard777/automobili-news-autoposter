@@ -15,6 +15,7 @@ TELEGRAM_RETRY_DELAY_SECONDS = 2
 TELEGRAM_CONNECT_TIMEOUT_SECONDS = 10
 TELEGRAM_READ_TIMEOUT_SECONDS = 30
 MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024
+MAX_VIDEO_SIZE_BYTES = 50 * 1024 * 1024
 IMAGE_DOWNLOAD_USER_AGENT = "Mozilla/5.0 AutoposterTemplate/1.0"
 IMAGE_DOWNLOAD_DEFAULT_RETRIES = 3
 IMAGE_DOWNLOAD_RETRY_DELAY_SECONDS = 0.5
@@ -95,6 +96,35 @@ def send_telegram_photo(photo, caption, filename=None, mime_type=None):
 
         if image_url:
             print(f"Image URL: {image_url}")
+
+    return result
+
+
+def send_telegram_video(video, caption, filename=None, mime_type=None):
+    """Upload one native streaming video with its caption."""
+
+    if not video:
+        return TelegramSendResult(False, "video is missing")
+
+    files = {
+        "video": (
+            filename or "auto-news-video.mp4",
+            video,
+            mime_type or "video/mp4",
+        )
+    }
+    result = _send_telegram_request(
+        "sendVideo",
+        {
+            "caption": caption,
+            "parse_mode": "HTML",
+            "supports_streaming": "true",
+        },
+        files=files,
+    )
+
+    if not result:
+        print(f"Video error: {result.error_reason}")
 
     return result
 

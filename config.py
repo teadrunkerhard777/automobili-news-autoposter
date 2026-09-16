@@ -11,6 +11,7 @@ from project.settings import (
     MIN_PUBLICATION_SCORE,
     NEWS_LOOKBACK_DAYS,
     POST_MODE,
+    VIDEO_SETTINGS,
 )
 from project.sources import SOURCES
 

@@ -1,7 +1,10 @@
 name: "Автомобили | НОВОСТИ |"
 
-# The repository exposes a manual endpoint for a trusted external scheduler.
+# GitHub runs in UTC. These slots are 13:00 and 20:00 Asia/Yekaterinburg.
 on:
+  schedule:
+    - cron: "0 8 * * *"
+    - cron: "0 15 * * *"
   workflow_dispatch:
 
 permissions:

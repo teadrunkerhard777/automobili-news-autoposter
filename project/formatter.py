@@ -61,6 +61,10 @@ def format_photo_caption(news_item):
     return _format(news_item, PHOTO_CAPTION_LIMIT, complete_paragraphs=True)
 
 
+def format_video_caption(news_item):
+    return _format(news_item, PHOTO_CAPTION_LIMIT, complete_paragraphs=True)
+
+
 def _format(news_item, limit, complete_paragraphs):
     fallback_emoji, category_label, category_tag = CATEGORY_PRESENTATION.get(
         news_item.get("event_category"),

@@ -55,3 +55,21 @@ def test_dotenv_load_precedes_dry_run_evaluation(monkeypatch):
 
     assert calls == ["load_dotenv"]
     assert namespace["DRY_RUN"] is False
+
+
+def test_post_mode_can_enable_video_for_scheduled_run(monkeypatch):
+    monkeypatch.setenv("AUTOPOSTER_POST_MODE", "video")
+    monkeypatch.setattr(dotenv, "load_dotenv", lambda: None)
+
+    namespace = runpy.run_path(str(CONFIG_PATH))
+
+    assert namespace["POST_MODE"] == "video"
+
+
+def test_invalid_post_mode_keeps_project_default(monkeypatch):
+    monkeypatch.setenv("AUTOPOSTER_POST_MODE", "unexpected")
+    monkeypatch.setattr(dotenv, "load_dotenv", lambda: None)
+
+    namespace = runpy.run_path(str(CONFIG_PATH))
+
+    assert namespace["POST_MODE"] == "single"

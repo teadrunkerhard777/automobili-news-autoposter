@@ -3,7 +3,7 @@
 NEWS_LOOKBACK_DAYS = 3
 MAX_NEWS_PER_RUN = 1
 MIN_PUBLICATION_SCORE = 5
-POST_MODE = "video"
+POST_MODE = "single"
 
 VIDEO_SETTINGS = {
     "enabled": True,

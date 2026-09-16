@@ -13,6 +13,8 @@ def test_workflow_has_cloud_schedule_and_safe_dispatch():
     assert 'cron: "0 15 * * *"' in text
     assert "cancel-in-progress: false" in text
     assert 'AUTOPOSTER_DRY_RUN: "false"' in text
+    assert "AUTOPOSTER_POST_MODE:" in text
+    assert "github.event_name == 'schedule'" in text
     assert "TELEGRAM_BOT_TOKEN" in text
     assert "TELEGRAM_CHAT_ID" in text
     assert "git add storage/published.json" in text

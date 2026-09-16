@@ -63,3 +63,7 @@ For the reusable architecture, see [ARCHITECTURE.md](ARCHITECTURE.md).
 Do not use real credentials in committed files. The workflow reads credentials
 only from GitHub Secrets and runs in GitHub's cloud at 13:00 and 20:00
 Asia/Yekaterinburg.
+
+Existing manual or external `workflow_dispatch` runs keep the normal photo/text
+format. Only the two built-in scheduled runs set video mode, so short clips
+diversify the feed without replacing its regular posts.

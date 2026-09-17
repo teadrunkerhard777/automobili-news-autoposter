@@ -4,11 +4,7 @@ from bs4 import BeautifulSoup
 
 from processing.filters import add_scores, filter_by_minimum_score, filter_relevant
 from project.filters import is_relevant
-from project.formatter import (
-    format_photo_caption,
-    format_post,
-    format_video_caption,
-)
+from project.formatter import format_photo_caption, format_post
 from project.scoring import calculate_score
 from project.sources import (
     extract_autostat_article,
@@ -183,16 +179,6 @@ def test_photo_caption_stays_inside_safe_limit():
     news = item("BMW представила новый автомобиль", "word & " * 1000)
     is_relevant(news)
     assert len(format_photo_caption(news)) <= 1000
-
-
-def test_video_caption_keeps_automotive_presentation():
-    news = item("Toyota представила новый кроссовер", "Новая модель")
-    is_relevant(news)
-    caption = format_video_caption(news)
-
-    assert len(caption) <= 1000
-    assert "#Новинки" in caption
-    assert "Читать источник" in caption
 
 
 def test_autostat_extractor_keeps_only_article_paragraphs():

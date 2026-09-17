@@ -13,7 +13,6 @@ events. It keeps local execution safe by default.
 - Generic article text and `og:image` / `twitter:image` extraction.
 - Isolated source-specific article extractors and stop markers.
 - Telegram text/photo publishing with temporary-file fallback.
-- Native vertical automotive MP4 posts generated locally from each story.
 - Duplicate protection for uncertain Telegram network outcomes.
 - JSON publication history with backward-compatible fingerprints.
 - Safe `DRY_RUN=True`, a local process lock, tests, and GitHub Actions.
@@ -60,10 +59,5 @@ For the reusable architecture, see [ARCHITECTURE.md](ARCHITECTURE.md).
 2. valid `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID`;
 3. an explicit execution of `main.py`.
 
-Do not use real credentials in committed files. The workflow reads credentials
-only from GitHub Secrets and runs in GitHub's cloud at 13:00 and 20:00
-Asia/Yekaterinburg.
-
-Existing manual or external `workflow_dispatch` runs keep the normal photo/text
-format. Only the two built-in scheduled runs set video mode, so short clips
-diversify the feed without replacing its regular posts.
+Do not use real credentials in committed files. The workflow reads
+credentials only from GitHub Secrets and has no built-in schedule.

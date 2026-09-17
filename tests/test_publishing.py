@@ -13,7 +13,6 @@ from publishing.telegram import (
     TemporaryImage,
     download_image_temp,
     send_telegram_photo,
-    send_telegram_video,
 )
 
 
@@ -41,12 +40,10 @@ def test_dry_run_never_publishes_or_changes_history():
         [news("https://img.test/photo.jpg")],
         history,
         True,
-        "video",
+        "single",
         send_post=fail_if_called,
         send_photo=fail_if_called,
-        send_video=fail_if_called,
         download_image=fail_if_called,
-        generate_video=fail_if_called,
         add_history=fail_if_called,
     )
 
@@ -288,59 +285,3 @@ def test_sender_marks_real_read_timeout_uncertain_without_retry(monkeypatch):
 
     assert result.uncertain is True
     assert len(calls) == 1
-
-
-def test_video_mode_sends_one_native_video_and_cleans_temp_file(tmp_path):
-    video_path = tmp_path / "clip.mp4"
-    video_path.write_bytes(b"video")
-    calls = []
-
-    def generate(item, settings, image_path=None):
-        calls.append((item["url"], image_path))
-        from generation.video import TemporaryVideo
-        return TemporaryVideo(video_path, "video/mp4", 5)
-
-    def send(video, caption, **kwargs):
-        calls.append((type(video).__name__, caption, kwargs))
-        return TelegramSendResult(True)
-
-    changed = publish_selected_news(
-        [news()], [], False, "video",
-        send_post=fail_if_called,
-        send_photo=fail_if_called,
-        send_video=send,
-        generate_video=generate,
-    )
-
-    assert changed is True
-    assert calls[0] == ("https://example.test/story", None)
-    assert calls[1][0] == "BufferedReader"
-    assert calls[1][2]["mime_type"] == "video/mp4"
-    assert video_path.exists() is False
-
-
-def test_send_video_uses_streaming_multipart(monkeypatch, tmp_path):
-    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "test-token")
-    monkeypatch.setenv("TELEGRAM_CHAT_ID", "test-chat")
-    captured = {}
-
-    class Response:
-        def raise_for_status(self):
-            return None
-
-        def json(self):
-            return {"ok": True}
-
-    def post(url, **kwargs):
-        captured.update(url=url, **kwargs)
-        return Response()
-
-    monkeypatch.setattr("publishing.telegram.requests.post", post)
-    path = tmp_path / "clip.mp4"
-    path.write_bytes(b"video")
-    with path.open("rb") as video:
-        result = send_telegram_video(video, "caption")
-
-    assert result.success is True
-    assert captured["data"]["supports_streaming"] == "true"
-    assert captured["files"]["video"][2] == "video/mp4"

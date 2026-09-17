@@ -5,19 +5,6 @@ MAX_NEWS_PER_RUN = 1
 MIN_PUBLICATION_SCORE = 5
 POST_MODE = "single"
 
-VIDEO_SETTINGS = {
-    "enabled": True,
-    "duration_seconds": 9,
-    "fps": 20,
-    "width": 720,
-    "height": 1280,
-    "background": "#101820",
-    "accent": "#E63946",
-    "highlight": "#F4D35E",
-    "foreground": "#FFFFFF",
-    "muted": "#D5DEE8",
-}
-
 RUSSIAN_STOP_WORDS = {
     "авто", "автомобиль", "будет", "были", "было", "для", "его", "как",
     "который", "машина", "модель", "новый", "новая", "новое", "после",

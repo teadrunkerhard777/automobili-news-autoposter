@@ -22,7 +22,6 @@ from config import (
     NEWS_LOOKBACK_DAYS,
     POST_MODE,
     SOURCES,
-    VIDEO_SETTINGS,
 )
 from core.environment import configure_ssl
 from core.run_lock import AlreadyRunningError, single_instance_lock
@@ -36,21 +35,14 @@ from processing.filters import (
     sort_by_score,
 )
 from project.filters import is_relevant
-from generation.video import VideoGenerationError, generate_video_temp
-from project.formatter import (
-    format_photo_caption,
-    format_post,
-    format_video_caption,
-)
+from project.formatter import format_photo_caption, format_post
 from project.scoring import calculate_score
 from project.sources import SOURCE_EXTRACTORS, SOURCE_STOP_MARKERS
 from publishing.telegram import (
     ImageDownloadError,
-    MAX_VIDEO_SIZE_BYTES,
     download_image_temp,
     send_telegram_photo,
     send_telegram_post,
-    send_telegram_video,
 )
 from storage.history import (
     add_to_history,
@@ -131,9 +123,7 @@ def publish_selected_news(
     post_mode,
     send_post=send_telegram_post,
     send_photo=send_telegram_photo,
-    send_video=send_telegram_video,
     download_image=download_image_temp,
-    generate_video=generate_video_temp,
     add_history=add_to_history,
     event_settings=EVENT_DEDUP_SETTINGS,
     sources=None,
@@ -146,74 +136,22 @@ def publish_selected_news(
     for item in selected_news:
         post = format_post(item)
         caption = format_photo_caption(item)
-        video_caption = format_video_caption(item)
         image_url = item.get("image_url")
 
         if dry_run:
             print("[DRY RUN] Telegram was not called")
             print(f"Image URL: {image_url or 'NOT FOUND'}")
-            if post_mode == "video" and VIDEO_SETTINGS.get("enabled"):
-                print(
-                    "Video: planned "
-                    f"{VIDEO_SETTINGS['duration_seconds']}s "
-                    f"{VIDEO_SETTINGS['width']}x{VIDEO_SETTINGS['height']}"
-                )
-                print(video_caption)
-            else:
-                print(caption if image_url else post)
+            print(caption if image_url else post)
             continue
 
-        if post_mode not in {"single", "video"}:
+        if post_mode != "single":
             print(f"Unsupported POST_MODE: {post_mode}")
             continue
 
         succeeded = False
         uncertain = False
 
-        if post_mode == "video" and VIDEO_SETTINGS.get("enabled"):
-            temporary_image = None
-            temporary_video = None
-
-            try:
-                if image_url:
-                    try:
-                        source_config = source_configs.get(item.get("source"))
-                        temporary_image = download_image(
-                            image_url,
-                            source_config=source_config,
-                        )
-                    except (ImageDownloadError, OSError) as error:
-                        print(f"Video image warning: {type(error).__name__}")
-
-                temporary_video = generate_video(
-                    item,
-                    VIDEO_SETTINGS,
-                    image_path=(
-                        temporary_image.path if temporary_image else None
-                    ),
-                )
-
-                if temporary_video.size_bytes > MAX_VIDEO_SIZE_BYTES:
-                    raise VideoGenerationError("video exceeds 50 MiB")
-
-                with temporary_video.path.open("rb") as video_file:
-                    video_result = send_video(
-                        video_file,
-                        video_caption,
-                        filename=temporary_video.path.name,
-                        mime_type=temporary_video.mime_type,
-                    )
-
-                succeeded = bool(video_result)
-                uncertain = getattr(video_result, "uncertain", False)
-            except (VideoGenerationError, OSError) as error:
-                print(f"Video fallback warning: {type(error).__name__}")
-            finally:
-                for temporary in (temporary_video, temporary_image):
-                    if temporary and temporary.path.exists():
-                        temporary.path.unlink()
-
-        if not succeeded and not uncertain and image_url:
+        if image_url:
             photo_result = send_photo(image_url, caption)
             succeeded = bool(photo_result)
             uncertain = getattr(photo_result, "uncertain", False)

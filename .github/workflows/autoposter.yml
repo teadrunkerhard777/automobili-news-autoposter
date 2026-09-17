@@ -1,10 +1,7 @@
 name: "Автомобили | НОВОСТИ |"
 
-# GitHub runs in UTC. These slots are 13:00 and 20:00 Asia/Yekaterinburg.
+# The repository exposes a manual endpoint for a trusted external scheduler.
 on:
-  schedule:
-    - cron: "0 8 * * *"
-    - cron: "0 15 * * *"
   workflow_dispatch:
 
 permissions:
@@ -40,7 +37,6 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           AUTOPOSTER_DRY_RUN: "false"
-          AUTOPOSTER_POST_MODE: ${{ github.event_name == 'schedule' && 'video' || 'single' }}
         run: python main.py
 
       - name: Commit publication history

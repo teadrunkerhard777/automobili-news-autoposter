@@ -10,7 +10,7 @@ from project.settings import (
     MAX_NEWS_PER_RUN,
     MIN_PUBLICATION_SCORE,
     NEWS_LOOKBACK_DAYS,
-    VIDEO_SETTINGS,
+    POST_MODE,
 )
 from project.sources import SOURCES
 
@@ -44,8 +44,3 @@ def _read_boolean_env(name, default):
 
 # Local execution is safe unless production explicitly opts out.
 DRY_RUN = _read_boolean_env("AUTOPOSTER_DRY_RUN", default=True)
-
-_post_mode = os.getenv("AUTOPOSTER_POST_MODE", project_settings.POST_MODE)
-POST_MODE = _post_mode.strip().casefold()
-if POST_MODE not in {"single", "video"}:
-    POST_MODE = project_settings.POST_MODE

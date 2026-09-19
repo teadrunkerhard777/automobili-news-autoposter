@@ -61,3 +61,18 @@ For the reusable architecture, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
 Do not use real credentials in committed files. The workflow reads
 credentials only from GitHub Secrets and has no built-in schedule.
+
+## Positive stock-video feature
+
+`video_main.py` is a separate, manual-by-default rubric based on the proven
+Pets autoposter flow. It searches the official Pexels and Pixabay APIs for
+short automotive footage: scenic drives, sunset roads, classic cars, road
+trips, cinematic details, and mountain roads. It publishes one native MP4 with
+a short positive Russian caption and a source link, without changing regular
+news posts.
+
+The video workflow defaults to DRY_RUN and requires free GitHub Secrets named
+`PEXELS_API_KEY` and `PIXABAY_API_KEY`. A video URL is recorded only after a
+confirmed Telegram success, so the same stock clip is not selected again.
+Automatic video scheduling is intentionally not enabled until the keys and a
+live preview are confirmed.

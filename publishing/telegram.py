@@ -14,6 +14,7 @@ TELEGRAM_MAX_ATTEMPTS = 2
 TELEGRAM_RETRY_DELAY_SECONDS = 2
 TELEGRAM_CONNECT_TIMEOUT_SECONDS = 10
 TELEGRAM_READ_TIMEOUT_SECONDS = 30
+TELEGRAM_VIDEO_READ_TIMEOUT_SECONDS = 120
 MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024
 IMAGE_DOWNLOAD_USER_AGENT = "Mozilla/5.0 AutoposterTemplate/1.0"
 IMAGE_DOWNLOAD_DEFAULT_RETRIES = 3
@@ -48,8 +49,19 @@ class TemporaryImage:
     size_bytes: int
 
 
+@dataclass(frozen=True)
+class TemporaryVideo:
+    path: Path
+    mime_type: str
+    size_bytes: int
+
+
 class ImageDownloadError(Exception):
     """Expected failure while preparing a Telegram-compatible image."""
+
+
+class VideoDownloadError(Exception):
+    """Expected failure while preparing a Telegram-compatible video."""
 
 
 def send_telegram_post(text):
@@ -97,6 +109,95 @@ def send_telegram_photo(photo, caption, filename=None, mime_type=None):
             print(f"Image URL: {image_url}")
 
     return result
+
+
+def send_telegram_video(video, caption, filename=None, mime_type=None):
+    """Upload an open MP4 file as one Telegram video message."""
+
+    if not video or isinstance(video, str):
+        return TelegramSendResult(False, "video file is missing")
+    result = _send_telegram_request(
+        "sendVideo",
+        {
+            "caption": caption,
+            "parse_mode": "HTML",
+            "supports_streaming": "true",
+        },
+        files={
+            "video": (
+                filename or "auto-stock-video.mp4",
+                video,
+                mime_type or "video/mp4",
+            )
+        },
+        read_timeout=TELEGRAM_VIDEO_READ_TIMEOUT_SECONDS,
+    )
+    if not result:
+        print(f"Video error: {result.error_reason}")
+    return result
+
+
+def download_video_temp(video_url, max_size_bytes):
+    """Stream and validate one MP4 in the operating-system temp directory."""
+
+    response = None
+    temp_path = None
+    completed = False
+    try:
+        response = requests.get(
+            video_url,
+            headers={"User-Agent": IMAGE_DOWNLOAD_USER_AGENT},
+            timeout=(
+                TELEGRAM_CONNECT_TIMEOUT_SECONDS,
+                TELEGRAM_READ_TIMEOUT_SECONDS,
+            ),
+            stream=True,
+        )
+        response.raise_for_status()
+        mime_type = response.headers.get("Content-Type", "")
+        mime_type = mime_type.split(";", 1)[0].strip().casefold()
+        if mime_type != "video/mp4":
+            raise VideoDownloadError(
+                f"unsupported Content-Type: {mime_type or 'missing'}"
+            )
+        content_length = response.headers.get("Content-Length")
+        if content_length:
+            try:
+                declared_size = int(content_length)
+            except ValueError:
+                declared_size = 0
+            if declared_size > max_size_bytes:
+                raise VideoDownloadError("video exceeds Telegram upload limit")
+        with tempfile.NamedTemporaryFile(
+            prefix="auto-stock-video-", suffix=".mp4", delete=False
+        ) as temp_file:
+            temp_path = Path(temp_file.name)
+            downloaded_size = 0
+            for chunk in response.iter_content(chunk_size=256 * 1024):
+                if not chunk:
+                    continue
+                downloaded_size += len(chunk)
+                if downloaded_size > max_size_bytes:
+                    raise VideoDownloadError(
+                        "video exceeds Telegram upload limit"
+                    )
+                temp_file.write(chunk)
+        if downloaded_size < 12:
+            raise VideoDownloadError("server returned an invalid MP4")
+        with temp_path.open("rb") as video_file:
+            header = video_file.read(12)
+        if header[4:8] != b"ftyp":
+            raise VideoDownloadError("video bytes do not match MP4")
+        result = TemporaryVideo(temp_path, mime_type, downloaded_size)
+        completed = True
+        return result
+    except requests.RequestException as error:
+        raise VideoDownloadError(type(error).__name__) from error
+    finally:
+        if response is not None:
+            response.close()
+        if temp_path is not None and not completed and temp_path.exists():
+            temp_path.unlink()
 
 
 def download_image_temp(image_url, source_config=None):
@@ -203,7 +304,12 @@ def _download_image_once(image_url, headers):
             temp_path.unlink()
 
 
-def _send_telegram_request(method, payload, files=None):
+def _send_telegram_request(
+    method,
+    payload,
+    files=None,
+    read_timeout=TELEGRAM_READ_TIMEOUT_SECONDS,
+):
     """Retry only known pre-connection failures to prevent duplicates."""
 
     bot_token = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
@@ -227,7 +333,7 @@ def _send_telegram_request(method, payload, files=None):
             arguments = {
                 "timeout": (
                     TELEGRAM_CONNECT_TIMEOUT_SECONDS,
-                    TELEGRAM_READ_TIMEOUT_SECONDS,
+                    read_timeout,
                 )
             }
 

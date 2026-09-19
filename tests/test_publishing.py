@@ -11,6 +11,8 @@ from publishing.telegram import (
     ImageDownloadError,
     TelegramSendResult,
     TemporaryImage,
+    VideoDownloadError,
+    download_video_temp,
     download_image_temp,
     send_telegram_photo,
 )
@@ -285,3 +287,43 @@ def test_sender_marks_real_read_timeout_uncertain_without_retry(monkeypatch):
 
     assert result.uncertain is True
     assert len(calls) == 1
+
+
+class VideoResponse:
+    def __init__(self, chunks, content_type="video/mp4"):
+        self.headers = {"Content-Type": content_type}
+        self.chunks = chunks
+        self.closed = False
+
+    def raise_for_status(self):
+        return None
+
+    def iter_content(self, chunk_size):
+        return iter(self.chunks)
+
+    def close(self):
+        self.closed = True
+
+
+def test_video_download_validates_mp4(monkeypatch):
+    response = VideoResponse([b"\x00\x00\x00\x18ftypmp42video"])
+    monkeypatch.setattr(
+        "publishing.telegram.requests.get",
+        lambda *args, **kwargs: response,
+    )
+    result = download_video_temp("https://video.test/car.mp4", 1_000)
+    try:
+        assert result.mime_type == "video/mp4"
+        assert response.closed is True
+    finally:
+        result.path.unlink()
+
+
+def test_video_download_rejects_non_mp4_bytes(monkeypatch):
+    response = VideoResponse([b"not really an mp4 file"])
+    monkeypatch.setattr(
+        "publishing.telegram.requests.get",
+        lambda *args, **kwargs: response,
+    )
+    with pytest.raises(VideoDownloadError, match="do not match MP4"):
+        download_video_temp("https://video.test/car.mp4", 1_000)

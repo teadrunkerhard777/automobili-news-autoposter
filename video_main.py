@@ -39,9 +39,23 @@ def choose_source_order(now=None):
     return VIDEO_SOURCES[preferred:] + VIDEO_SOURCES[:preferred]
 
 
-def format_video_caption(item):
+def choose_video_caption(item, history=None):
     media_id = str(item.get("media_id") or "0")
-    caption = VIDEO_CAPTIONS[sum(media_id.encode("utf-8")) % len(VIDEO_CAPTIONS)]
+    start = sum(media_id.encode("utf-8")) % len(VIDEO_CAPTIONS)
+    used = {
+        entry.get("video_caption") for entry in (history or [])
+        if entry.get("video_caption") in VIDEO_CAPTIONS
+    }
+    for offset in range(len(VIDEO_CAPTIONS)):
+        caption = VIDEO_CAPTIONS[(start + offset) % len(VIDEO_CAPTIONS)]
+        if caption not in used:
+            return caption
+    return VIDEO_CAPTIONS[start]
+
+
+def format_video_caption(item, history=None):
+    caption = choose_video_caption(item, history)
+    item["video_caption"] = caption
     page_url = html.escape(str(item["url"]), quote=True)
     source = html.escape(str(item.get("source_label") or item["source"]))
     return f'{caption}\n\n<a href="{page_url}">{source}</a>'
@@ -71,6 +85,7 @@ def add_video_to_history(item, history):
         "media_id": item.get("media_id"),
         "pexels_id": item.get("pexels_id"),
         "pixabay_id": item.get("pixabay_id"),
+        "video_caption": item.get("video_caption"),
     })
 
 
@@ -94,7 +109,7 @@ def publish_video(item, history, dry_run, download_video=download_video_temp, se
     temporary_video = None
     try:
         temporary_video = download_video(item["video_url"], VIDEO_MAX_SIZE_BYTES)
-        caption = format_video_caption(item)
+        caption = format_video_caption(item, history)
         if dry_run:
             print("[DRY RUN] Telegram was not called")
             print(f"Video validated: {temporary_video.mime_type}, {temporary_video.size_bytes} bytes")

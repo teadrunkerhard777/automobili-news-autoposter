@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from project.video_settings import VIDEO_CAPTIONS
 from publishing.telegram import TelegramSendResult, TemporaryVideo
 from video_main import (
+    choose_video_caption,
     add_video_to_history,
     choose_search_query,
     choose_source_order,
@@ -25,8 +26,16 @@ def video():
 
 
 def test_captions_are_positive_varied_and_unique():
-    assert len(VIDEO_CAPTIONS) >= 20
+    assert len(VIDEO_CAPTIONS) == 30
     assert len(set(VIDEO_CAPTIONS)) == len(VIDEO_CAPTIONS)
+
+
+def test_caption_does_not_repeat_until_all_have_been_used():
+    item = video()
+    first = choose_video_caption(item, [])
+    history = [{"video_caption": first}]
+
+    assert choose_video_caption(item, history) != first
 
 
 def test_day_and_evening_rotate_query_and_source():

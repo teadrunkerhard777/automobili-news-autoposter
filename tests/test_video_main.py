@@ -10,6 +10,8 @@ from video_main import (
     format_video_caption,
     publish_video,
     select_unpublished_video,
+    video_slot_already_published,
+    video_slot_key,
 )
 
 
@@ -44,6 +46,21 @@ def test_day_and_evening_rotate_query_and_source():
 
     assert choose_search_query(day) != choose_search_query(evening)
     assert choose_source_order(day)[0] != choose_source_order(evening)[0]
+
+
+def test_video_slot_key_separates_day_and_evening():
+    day = datetime(2026, 9, 26, 8, tzinfo=timezone.utc)
+    evening = datetime(2026, 9, 26, 16, tzinfo=timezone.utc)
+
+    assert video_slot_key(day) == "2026-09-26:day"
+    assert video_slot_key(evening) == "2026-09-26:evening"
+
+
+def test_published_video_slot_blocks_duplicate_run():
+    now = datetime(2026, 9, 26, 8, tzinfo=timezone.utc)
+    history = [{"video_slot": "2026-09-26:day"}]
+
+    assert video_slot_already_published(history, now) is True
 
 
 def test_selection_skips_already_published_url():
@@ -94,5 +111,7 @@ def test_confirmed_send_adds_video_history(tmp_path):
 
 def test_add_video_history_keeps_source_ids():
     history = []
-    add_video_to_history(video(), history)
+    now = datetime(2026, 9, 26, 8, tzinfo=timezone.utc)
+    add_video_to_history(video(), history, now)
     assert history[0]["pexels_id"] == 42
+    assert history[0]["video_slot"] == "2026-09-26:day"

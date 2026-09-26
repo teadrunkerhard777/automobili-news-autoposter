@@ -39,6 +39,18 @@ def choose_source_order(now=None):
     return VIDEO_SOURCES[preferred:] + VIDEO_SOURCES[:preferred]
 
 
+def video_slot_key(now=None):
+    current = now or datetime.now(timezone.utc)
+    local = current.astimezone(VIDEO_TIMEZONE)
+    slot = "day" if local.hour < 17 else "evening"
+    return f"{local.date().isoformat()}:{slot}"
+
+
+def video_slot_already_published(history, now=None):
+    slot_key = video_slot_key(now)
+    return any(entry.get("video_slot") == slot_key for entry in history)
+
+
 def choose_video_caption(item, history=None):
     media_id = str(item.get("media_id") or "0")
     start = sum(media_id.encode("utf-8")) % len(VIDEO_CAPTIONS)
@@ -76,7 +88,7 @@ def _normalize_media_url(value):
     return str(value or "").strip().rstrip("/").casefold()
 
 
-def add_video_to_history(item, history):
+def add_video_to_history(item, history, now=None):
     history.append({
         "title": item.get("title", ""),
         "url": item.get("url", ""),
@@ -86,6 +98,7 @@ def add_video_to_history(item, history):
         "pexels_id": item.get("pexels_id"),
         "pixabay_id": item.get("pixabay_id"),
         "video_caption": item.get("video_caption"),
+        "video_slot": video_slot_key(now),
     })
 
 
@@ -105,7 +118,10 @@ def collect_source_videos(source, query):
     return []
 
 
-def publish_video(item, history, dry_run, download_video=download_video_temp, send_video=send_telegram_video):
+def publish_video(
+    item, history, dry_run, download_video=download_video_temp,
+    send_video=send_telegram_video, now=None,
+):
     temporary_video = None
     try:
         temporary_video = download_video(item["video_url"], VIDEO_MAX_SIZE_BYTES)
@@ -121,7 +137,7 @@ def publish_video(item, history, dry_run, download_video=download_video_temp, se
                 mime_type=temporary_video.mime_type,
             )
         if result:
-            add_video_to_history(item, history)
+            add_video_to_history(item, history, now)
             return True
         return False
     except (VideoDownloadError, OSError) as error:
@@ -136,6 +152,9 @@ def run(now=None):
     configure_ssl()
     query = choose_search_query(now)
     history = load_history()
+    if not DRY_RUN and video_slot_already_published(history, now):
+        print(f"Video slot {video_slot_key(now)} is already published; duplicate run skipped.")
+        return None
     print(f"Video query: {query}")
     selected = None
     for source in choose_source_order(now):
@@ -152,7 +171,7 @@ def run(now=None):
         print("No unpublished video is available; publication skipped.")
         return None
     print(f"Selected {selected.get('source')} video: {selected.get('media_id')}")
-    changed = publish_video(selected, history, DRY_RUN)
+    changed = publish_video(selected, history, DRY_RUN, now=now)
     if not DRY_RUN and changed:
         save_history(history)
     return selected

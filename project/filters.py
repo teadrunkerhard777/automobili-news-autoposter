@@ -32,12 +32,37 @@ EVENT_CATEGORY_PRIORITY = (
     "market", "industry", "technology", "ownership",
 )
 
+CONSUMABLE_PRODUCT_SIGNALS = (
+    "моторн", "смазочн", "антифриз", "присадк", "автохими", "шины",
+)
+PRODUCT_LAUNCH_SIGNALS = (
+    "новый бренд", "нового бренда", "собственного бренда",
+    "собственный бренд", "новую линейку", "новой линейки",
+    "новая линейка", "выводит на рынок", "выходят на рынок",
+)
+
+
+def is_consumable_promotion(news_item):
+    """Exclude commercial product launches, keeping tests and safety news."""
+
+    title = str(news_item.get("title", "")).casefold()
+    return (
+        any(signal in title for signal in CONSUMABLE_PRODUCT_SIGNALS)
+        and any(signal in title for signal in PRODUCT_LAUNCH_SIGNALS)
+        and not any(signal in title for signal in (
+            "отзыв", "дефект", "опасн", "тест", "провер", "поддел",
+        ))
+    )
+
 
 def is_relevant(news_item):
     """Accept a vehicle story with a concrete editorial topic signal."""
 
     text = f"{news_item.get('title', '')} {news_item.get('description', '')}".casefold()
-    excluded = any(re.search(pattern, text) for pattern in EXCLUDE_PATTERNS)
+    excluded = (
+        any(re.search(pattern, text) for pattern in EXCLUDE_PATTERNS)
+        or is_consumable_promotion(news_item)
+    )
     has_vehicle_context = any(keyword in text for keyword in VEHICLE_CONTEXT)
     matched = {
         topic for topic, keywords in TOPIC_KEYWORDS.items()

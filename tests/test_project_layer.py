@@ -40,6 +40,35 @@ def test_filter_rejects_unrelated_accident_news():
     assert not is_relevant(item("В ДТП с автомобилем погиб пешеход"))
 
 
+def test_consumable_brand_launch_is_excluded_but_safety_and_tests_remain():
+    promotion = item(
+        "ТекЛюб выводит на рынок новый бренд смазочных материалов: моторные масла R.E.D. CORE",
+        "Компания объявляет о запуске собственного бренда моторных масел в России.",
+    )
+    assert not is_relevant(promotion)
+    assert promotion["matched_topics"] == []
+    for title in (
+        "Тест моторных масел: что выбрать для двигателя автомобиля",
+        "Производитель отзывает автомобильные шины из-за опасного дефекта",
+    ):
+        assert is_relevant(item(title))
+
+
+def test_corporate_investment_plans_do_not_pass_publication_threshold():
+    news = item(
+        "Renault объявила о масштабных инвестициях в электрокары и бюджетные машины",
+        "Renault Group намерена вложить во Франции более €10 млрд в течение следующих пяти лет.",
+    )
+    assert is_relevant(news)
+    assert calculate_score(news) < 5
+    concrete = item(
+        "Renault запустила новый завод после крупных инвестиций",
+        "Завод начал выпуск электромобилей.",
+    )
+    assert is_relevant(concrete)
+    assert calculate_score(concrete) >= 5
+
+
 def test_scoring_keeps_routine_racing_below_major_event():
     routine = item(
         "Льюис Хэмилтон: новая трасса интересна для пилотирования",

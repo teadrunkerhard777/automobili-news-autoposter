@@ -43,6 +43,16 @@ def calculate_score(news_item):
     text = f"{title} {news_item.get('description', '')}".casefold()
     topics = news_item.get("matched_topics", [])
 
+    # Corporate funding plans are background business news, not a concrete
+    # vehicle release, sale, factory launch, or change affecting drivers.
+    if any(signal in title for signal in (
+        "инвестиц", "намерена вложить", "намерен вложить", "планирует вложить",
+    )) and not any(signal in title for signal in (
+        "начал выпуск", "начала выпуск", "запустил", "запустила",
+        "открыл завод", "открыла завод", "начал продажи", "начала продажи",
+    )):
+        return 2
+
     if topics == ["motorsport"]:
         # Feed descriptions often mention official bodies, champions, cars,
         # and technical terms as background. Only the headline event decides
